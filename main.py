@@ -9,10 +9,10 @@ pygame.init()
 crash_sound = pygame.mixer.Sound(os.path.join('sounds', 'crash.wav'))
 run_sound = pygame.mixer.Sound(os.path.join('sounds', 'run.wav'))
 jump_sound = pygame.mixer.Sound(os.path.join('sounds', 'boing.wav'))
-pygame.mixer.music.load(os.path.join('sounds', 'music.mp3'))
-
-worldx = 1920
-worldy = 1080
+pygame.mixer.music.load(os.path.join('sounds', 'music.wav'))
+play_sound = True
+worldx = 1024
+worldy = 768
 fps = 40
 ani = 6
 world = pygame.display.set_mode((worldx, worldy))
@@ -34,10 +34,13 @@ class Platform(pygame.sprite.Sprite):
         self.rect.x = xloc
         self.mask = pygame.mask.from_surface(self.image)
         self.shaked = False
-    def shake(self):
-        if not self.shaked:
-            self.shaked = True
 
+    def shake(self):
+        plat_list.clear(self.image, backdrop)
+        self.rect.y -= 20
+        world.blit(self.image,(self.rect.x,self.rect.y))
+        self.rect.y += 20
+        world.blit(self.image,(self.rect.x,self.rect.y))
 
 class Player(pygame.sprite.Sprite):
     """
@@ -278,7 +281,7 @@ Main Loop
 '''
 
 
-pygame.mixer.music.play(-1, 2)
+pygame.mixer.music.play(-1)
 pygame.mixer.music.set_volume(0.2)
 while main:
 
@@ -308,6 +311,9 @@ while main:
                 pygame.mixer.Sound.stop(run_sound)
                 player.control(-steps, 0)
 
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            x, y = event.pos
+            print('x : {} y : {}'.format(x, y))
 
 
     # scroll the world forward
@@ -335,6 +341,7 @@ while main:
     enemy_list.draw(world)
     ground_list.draw(world)
     plat_list.draw(world)
+
     for e in enemy_list:
         e.move()
     pygame.display.flip()
