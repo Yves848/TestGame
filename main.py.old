@@ -30,7 +30,7 @@ Objects
 
 # x location, y location, img width, img height, img file
 class Platform(pygame.sprite.Sprite):
-    def __init__(self, xloc, yloc, imgw, imgh, img,unbreak=False):
+    def __init__(self, xloc, yloc, imgw, imgh, img):
         pygame.sprite.Sprite.__init__(self)
         self.image = pygame.image.load(os.path.join('images', img))
         self.rect = self.image.get_rect()
@@ -44,7 +44,6 @@ class Platform(pygame.sprite.Sprite):
         self.shaking = False
         self.inshake = False
         self.shakevel = -15
-        self.unbreaking = unbreak
         self.level = random.randrange(2,7)
 
     def draw_level(self):
@@ -56,7 +55,7 @@ class Platform(pygame.sprite.Sprite):
         if self.inshake:
             self.rect.top += self.shakevel
             if self.shakevel < 0:
-                if self.rect.top <= self.topshake:
+                if self.rect.top <=  self.topshake:
                     self.shakevel = abs(self.shakevel)
 
             if self.shakevel > 0:
@@ -71,14 +70,13 @@ class Platform(pygame.sprite.Sprite):
         if self.level <= 0:
             plat_list.remove(self)
 
-        if not self.unbreaking and self.shaking:
+        if self.shaking:
             if not self.inshake:
                 self.inshake = True
             self.shake()
 
         world.blit(self.image, (self.rect.left, self.rect.top))
-        if not self.unbreaking:
-            self.draw_level()
+        self.draw_level()
 
 
 class Player(pygame.sprite.Sprite):
@@ -92,7 +90,6 @@ class Player(pygame.sprite.Sprite):
         self.movey = 50.0
         self.frame = 0
         self.health = 10
-        self.count = 0
         self.is_jumping = False
         self.is_falling = True
         self.images = []
@@ -118,11 +115,11 @@ class Player(pygame.sprite.Sprite):
             self.is_jumping = True
 
     def draw_level(self):
-        level_font = pygame.font.Font(os.path.join('fonts', 'Grinched 2.0.ttf'), 70)
+        level_font = pygame.font.Font(os.path.join('fonts','Grinched 2.0.ttf'), 70)
         player_level = level_font.render(f"health : {str(self.health)}", 1, (0, 0, 0))
         world_rect = world.get_rect()
         world.blit(player_level, (world_rect.left + 25, world_rect.top + 25))  
-        level_font = pygame.font.Font(os.path.join('fonts', 'Grinched 2.0.ttf'), 66)
+        level_font = pygame.font.Font(os.path.join('fonts','Grinched 2.0.ttf'), 66)
         player_level = level_font.render(f"health : {str(self.health)}", 1, (255, 255, 255))
         world.blit(player_level, (world_rect.left + 27, world_rect.top + 26))
 
@@ -172,47 +169,28 @@ class Player(pygame.sprite.Sprite):
                             self.is_falling = True
                             self.movey = 14
                             p.shaking = True
-
-        plat_hit_list2 = pygame.sprite.spritecollide(self, plat_list2, False)
-        if len(plat_hit_list2) > 0:
-            collision = True
-            for p2 in plat_hit_list2:
-                if self.rect.bottom <= (p2.rect.top + (p2.rect.height / 2)):
-                    self.rect.top = p2.rect.top - self.rect.height
-                    self.is_jumping = False
-                    self.is_falling = False
-                    self.movey = 0
-                else:
-                    if self.rect.top >= p2.rect.bottom - (p2.rect.height / 2) and not p2.shaking:
-                        if not p2.inshake:
-                            collision = False
-                            pygame.mixer.Sound.play(crash_sound)
-                            self.is_falling = True
-                            self.movey = 14
-                            p2.shaking = True
-
         else:
             if not self.is_falling and not self.is_jumping and len(ground_hit_list) == 0:
                 self.rect.y += 10
                 below_list = pygame.sprite.spritecollide(self, plat_list, False)
-                below_list2 = pygame.sprite.spritecollide(self, plat_list2, False)
-                below_list3 = pygame.sprite.spritecollide(self, ground_list, False)
+                below_list2 = pygame.sprite.spritecollide(self, ground_list, False)
                 self.rect.y -= 10.0
-                if len(below_list) == 0 and len(below_list2) == 0 and len(below_list3) == 0:
+                if len(below_list) == 0 and len(below_list2) == 0:
                     self.movey = 15.0
                     self.is_falling = True
-
+        
         enemy_hit_list = pygame.sprite.spritecollide(self, enemy_list, False)
         for enemy in enemy_hit_list:
-            if self.count >= 50:
-                self.health -= 1
-                self.count = 0
-                #print(self.health)
+            self.health -= 1
+            # print(self.health)
 
         """
         # fall off the world
         if self.rect.y > worldy:
-            self.health == 0
+            self.health -= 1
+            print(self.health)
+            self.rect.x = tx
+            self.rect.y = ty
 
         """
         if not collision:
@@ -249,17 +227,14 @@ class Enemy(pygame.sprite.Sprite):
         distance = 80
         speed = 8
 
-        self.rect.x -= speed
-
-        """"
         if 0 <= self.counter <= distance:
             self.rect.x += speed
         elif distance <= self.counter <= distance * 2:
             self.rect.x -= speed
         else:
             self.counter = 0
+
         self.counter += 1
-        """
 
 
 class Level:
@@ -279,11 +254,9 @@ class Level:
 
     def bad(lvl, eloc):
         if lvl == 1:
-            enemy = Enemy(800, 920, 'enemy.png')
-            enemy2 = Enemy(2000, 920, 'enemy.png')
+            enemy = Enemy(eloc[0], eloc[1], 'enemy.png')
             enemy_list = pygame.sprite.Group()
             enemy_list.add(enemy)
-            enemy_list.add(enemy2)
         if lvl == 2:
             print("Level " + str(lvl))
 
@@ -298,7 +271,7 @@ class Level:
             ploc.append((200, worldy - ty - 158, 3))
             ploc.append((300, worldy - ty - 316, 3))
             ploc.append((550, worldy - ty - 158, 4))
-            ploc.append((380, worldy - ty - (158 * 3), 4))
+            ploc.append((380, worldy - ty - (158 * 3) , 4))
             while i < len(ploc):
                 j = 0
                 while j <= ploc[i][2]:
@@ -312,28 +285,7 @@ class Level:
 
         return plat_list
 
-    def platform2(lvl, tx, ty):
-        plat_list2 = pygame.sprite.Group()
-        ploc2 = []
-        i = 0
-        if lvl == 1:
-            ploc2.append((1200, worldy - ty - 64, 3))
-            ploc2.append((1264, worldy - ty - 128, 2))
-            ploc2.append((1328, worldy - ty - 192, 1))
-            ploc2.append((1392, worldy - ty - 256, 0))
-            while i < len(ploc2):
-                j = 0
-                while j <= ploc2[i][2]:
-                    plat2 = Platform((ploc2[i][0] + (j * tx)), ploc2[i][1], tx, ty, 'tile2.png',True)
-                    plat_list2.add(plat2)
-                    j = j + 1
-                i = i + 1
-
-        if lvl == 2:
-            print("Level " + str(lvl))
-
-        return plat_list2
-
+    
 
 '''
 Setup
@@ -353,6 +305,7 @@ player_list.add(player)
 steps = 10
 
 eloc = []
+eloc = [300, 0]
 enemy_list = Level.bad(1, eloc)
 
 gloc = []
@@ -366,7 +319,6 @@ while i <= (worldx / tx) + tx:
 
 ground_list = Level.ground(1, gloc, tx, ty)
 plat_list = Level.platform(1, tx, ty)
-plat_list2 = Level.platform2(1, tx, ty)
 
 '''
 Main Loop
@@ -385,23 +337,21 @@ while main:
 
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_LEFT or event.key == ord('a'):
-                #pygame.mixer.Sound.play(run_sound, -1)
+                pygame.mixer.Sound.play(run_sound, -1)
                 player.control(-steps, 0)
             if event.key == pygame.K_RIGHT or event.key == ord('d'):
-                #pygame.mixer.Sound.play(run_sound, -1)
+                pygame.mixer.Sound.play(run_sound, -1)
                 player.control(steps, 0)
             if event.key == pygame.K_UP or event.key == ord('w'):
-                #pygame.mixer.Sound.play(jump_sound)
+                pygame.mixer.Sound.play(jump_sound)
                 player.jump()
-            if event.key == pygame.K_ESCAPE:
-                pygame.quit()
 
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_LEFT or event.key == ord('a'):
-                #pygame.mixer.Sound.stop(run_sound)
+                pygame.mixer.Sound.stop(run_sound)
                 player.control(steps, 0)
             if event.key == pygame.K_RIGHT or event.key == ord('d'):
-                #pygame.mixer.Sound.stop(run_sound)
+                pygame.mixer.Sound.stop(run_sound)
                 player.control(-steps, 0)
 
         if event.type == pygame.MOUSEBUTTONDOWN:
@@ -414,12 +364,8 @@ while main:
         player.rect.x = forwardx
         for p in plat_list:
             p.rect.x -= scroll
-        for p2 in plat_list2:
-            p2.rect.x -= scroll
-        for g in ground_list:
-            g.rect.x -= scroll
-        for e in enemy_list:
-            e.rect.x -= scroll
+        for e in enemy_list:  # enemy scroll
+            e.rect.x -= scroll  # enemy scroll
 
     # scroll the world backward
     if player.rect.x <= backwardx:
@@ -427,12 +373,8 @@ while main:
         player.rect.x = backwardx
         for p in plat_list:
             p.rect.x += scroll
-        for p2 in plat_list2:
-            p2.rect.x += scroll
-        for g in ground_list:
-            g.rect.x += scroll
-        for e in enemy_list:
-            e.rect.x += scroll
+        for e in enemy_list:  # enemy scroll
+            e.rect.x += scroll  # enemy scroll
 
     world.blit(backdrop, backdropbox)
     player.draw_level()
@@ -441,20 +383,13 @@ while main:
     player_list.draw(world)
     enemy_list.draw(world)
     ground_list.draw(world)
-    #plat_list2.draw(world)
-    player.count += 1
-
-    if player.count == 1000:
-        player.count = 50
+    #plat_list.draw(world)
     
     for plat in plat_list:
         plat.draw()
 
-    for plat2 in plat_list2:
-        plat2.draw()
-
     for e in enemy_list:
         e.move()
-
+    
     pygame.display.flip()
     clock.tick(fps)
